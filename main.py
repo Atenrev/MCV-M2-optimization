@@ -1,6 +1,5 @@
 import argparse
 import os
-
 import cv2
 
 from src.model import inpaint_image
@@ -27,8 +26,10 @@ def main(args: argparse.Namespace) -> None:
     for sample in dataset:
         image = sample.image
         mask = sample.mask
-        image_inpainted = inpaint_image(image, mask)
-        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), image_inpainted)
+
+        image = inpaint_image(image, mask)
+        
+        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), image)
 
 
 if __name__ == "__main__":

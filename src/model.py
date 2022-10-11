@@ -23,7 +23,8 @@ def inpaint_image(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 %TO COMPLETE 
     """
     # TODO: We are not padding!
-    image = np.mean(image, axis=-1).squeeze()
+    if len(image.shape) > 2:
+        image = np.mean(image, axis=-1).squeeze()
     V = np.zeros_like(image)
     m = image.shape[0]; n = image.shape[1]
     Am = An = m * n # (m+2) * (n+2)
