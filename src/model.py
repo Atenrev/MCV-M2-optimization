@@ -6,7 +6,7 @@ from scipy.sparse.linalg import spsolve
 from src.utils import get_flat_index
 
 
-def inpaint_image(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+def get_gradient(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """
     A=sparse(idx_Ai, idx_Aj, a_ij, ???, ???); %??? and ???? is the size of matrix A
     x=mldivide(A,b); 
@@ -74,3 +74,21 @@ def inpaint_image(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     x = spsolve(A, b)
     u_ext = np.reshape(x, image.shape)
     return u_ext
+
+def inpaint_image(image, mask):
+
+    x_0 = image.mean(axis = -1)
+    gradient = get_gradient(image, mask)
+
+    ###### GRADIENT DESCENT WITH GRADIENT X ####
+    max_iter = 1000
+    alpha = 0.01
+    conv = 0.01
+    for _ in range(max_iter): # TODO: Actual convergence setup
+
+        x_0 = x_0 - alpha * gradient
+        gradient = get_gradient(x_0, mask)
+    
+    return x_0
+
+    
