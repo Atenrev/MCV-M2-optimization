@@ -36,7 +36,7 @@ def main(args: argparse.Namespace) -> None:
     os.makedirs(args.output_dir, exist_ok=True)
     dataset = Dataset(args.images_dir, args.masks_dir)
 
-    max_iter = 50
+    max_iter = 5
     alpha = 1.0
     theta = 1.0
     conv = 0.01
@@ -44,6 +44,9 @@ def main(args: argparse.Namespace) -> None:
     for n, sample in tqdm(enumerate(dataset), total=dataset.size()):
         image = sample.image
         mask = sample.mask
+
+        image -= np.min(image)
+        image = image / np.max(image)
 
         if len(image.shape) > 2:
             image_channels = [image[:,:,0], image[:,:,1], image[:,:,2]]
@@ -63,14 +66,14 @@ def main(args: argparse.Namespace) -> None:
                 u = u - alpha * lagrange_gradient
 
             if len(image_channels) > 2:
-                V[:,:,c] = u / u.max() * 255
+                V[:,:,c] = u / np.max(u) * 255
             else:
-                V = u / u.max() * 255
+                V = u / np.max(u) * 255
         
         # plt.imshow(u, cmap = 'gray')
         # plt.savefig(os.path.join(args.output_dir, f"{sample.name}.jpg"))
         # plt.clf()
-        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), cv2.cvtColor(V, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), cv2.cvtColor(V.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
 
 if __name__ == "__main__":
