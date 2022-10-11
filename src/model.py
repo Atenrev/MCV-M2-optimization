@@ -81,14 +81,14 @@ def inpaint_image(image, mask):
     gradient = get_gradient(image, mask)
 
     ###### GRADIENT DESCENT WITH GRADIENT X ####
-    max_iter = 1000
+    max_iter = 10
     alpha = 0.01
     conv = 0.01
     for _ in range(max_iter): # TODO: Actual convergence setup
 
         x_0 = x_0 - alpha * gradient
         gradient = get_gradient(x_0, mask)
-    
+    print('finished')
     return x_0
 
     
