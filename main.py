@@ -50,6 +50,7 @@ def main(args: argparse.Namespace) -> None:
 
         #u = np.zeros_like(image)
         u = np.array(image)
+        image[mask] = 0
     
         for _ in tqdm(range(max_iter)):
             
