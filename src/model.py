@@ -6,7 +6,7 @@ from scipy.sparse.linalg import spsolve
 from src.utils import get_flat_index
 
 
-def get_gradient(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+def inpaint_image(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """
     A=sparse(idx_Ai, idx_Aj, a_ij, ???, ???); %??? and ???? is the size of matrix A
     x=mldivide(A,b); 
@@ -22,73 +22,117 @@ def get_gradient(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 %Fill Idx_Ai, idx_Aj and a_ij with the corresponding values and vector b
                 %TO COMPLETE 
     """
-    # TODO: We are not padding!
-    if len(image.shape) > 2:
-        image = np.mean(image, axis=-1).squeeze()
-    V = np.zeros_like(image)
-    m = image.shape[0]; n = image.shape[1]
-    Am = An = m * n # (m+2) * (n+2)
+    ni, nj = image.shape[:2]
+    mask_ext = np.zeros((mask.shape[0]+2, mask.shape[1]+2))
+    mask_ext[1:-1, 1:-1] = mask
+    image_ext = np.zeros((image.shape[0]+2, image.shape[1]+2))
+    image_ext[1:-1, 1:-1] = image
 
-    # Compute equation for A
-    mask_flattened = mask.flatten()
-    idx_Ai = idx_Aj = (mask_flattened == 0).nonzero()[0]
-    idx_Ai = list(idx_Ai)
-    idx_Aj = list(idx_Aj)
-    a_ij = np.ones_like(idx_Ai).tolist()
+    n_pixels = (ni+2) * (nj+2)
+    b = np.zeros((n_pixels, ), dtype=np.float64)
 
-    # Compute equation for B
-    mask_i, mask_j = (mask).nonzero()
+    idx_Ai = list()
+    idx_Aj = list()
+    a_ij = list()
 
-    for i, j in zip(mask_i, mask_j):
-        row = get_flat_index(i, j, n)
+    # North Side boundary conditions
+    j = 0
+    for i in range(ni+2):
+        idx = get_flat_index(i, j, nj+2)
 
-        # 4𝑉 𝑥 𝑦
-        idx_Ai.append(row)
-        idx_Aj.append(row)
-        a_ij.append(4)
-        #  − (𝑉 𝑥 − 1, 𝑦 + 𝑉 𝑥 − 1, 𝑦 + 𝑉 𝑥, 𝑦 − 1 + 𝑉 𝑥, 𝑦 + 1 )
-        col = row-1
-        idx_Ai.append(row)
-        idx_Aj.append(col)
+        idx_Ai.append(idx)
+        idx_Aj.append(idx)
+        a_ij.append(1)
+
+        idx_Ai.append(idx)
+        idx_Aj.append(idx+1)
         a_ij.append(-1)
 
-        col = row+1
-        idx_Ai.append(row)
-        idx_Aj.append(col)
+        b[idx] = 0
+
+    j = nj+1
+    for i in range(ni+2):
+        idx = get_flat_index(i, j, nj+2)
+
+        idx_Ai.append(idx)
+        idx_Aj.append(idx)
+        a_ij.append(1)
+
+        idx_Ai.append(idx)
+        idx_Aj.append(idx-1)
         a_ij.append(-1)
 
-        col = get_flat_index(i, j-1, n)
-        idx_Ai.append(row)
-        idx_Aj.append(col)
+        b[idx] = 0
+
+    i = 0
+    for j in range(nj+2):
+        idx = get_flat_index(i, j, nj+2)
+        idx_next = get_flat_index(i+1, j, nj+2)
+
+        idx_Ai.append(idx_next)
+        idx_Aj.append(idx)
         a_ij.append(-1)
 
-        col = get_flat_index(i, j+1, n)
-        idx_Ai.append(row)
-        idx_Aj.append(col)
+        idx_Ai.append(idx)
+        idx_Aj.append(idx)
+        a_ij.append(1)
+
+        b[idx] = 0
+
+    i = ni+1
+    for j in range(nj+2):
+        idx = get_flat_index(i, j, nj+2)
+        idx_prev = get_flat_index(i-1, j, nj+2)
+
+        idx_Ai.append(idx_prev)
+        idx_Aj.append(idx)
         a_ij.append(-1)
 
-    A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(Am, An))
-    b = (image * ~mask).flatten()
+        idx_Ai.append(idx)
+        idx_Aj.append(idx)
+        a_ij.append(1)
+
+        b[idx] = 0
+
+    for i in range(1, ni+1):
+        for j in range(1, nj+1):
+            idx = get_flat_index(i, j, nj+2)
+            
+            if mask_ext[i, j]:
+                # 4𝑉 𝑥 𝑦
+                idx_Ai.append(idx)
+                idx_Aj.append(idx)
+                a_ij.append(4)
+                #  − (𝑉 𝑥 − 1, 𝑦 + 𝑉 𝑥 − 1, 𝑦 + 𝑉 𝑥, 𝑦 − 1 + 𝑉 𝑥, 𝑦 + 1 )
+                col = idx-1
+                idx_Ai.append(idx)
+                idx_Aj.append(col)
+                a_ij.append(-1)
+
+                col = idx+1
+                idx_Ai.append(idx)
+                idx_Aj.append(col)
+                a_ij.append(-1)
+
+                col = get_flat_index(i, j-1, nj+2)
+                idx_Ai.append(idx)
+                idx_Aj.append(col)
+                a_ij.append(-1)
+
+                col = get_flat_index(i, j+1, nj+2)
+                idx_Ai.append(idx)
+                idx_Aj.append(col)
+                a_ij.append(-1)
+                b[idx] = image[i-1, j-1]
+            else:
+                idx_Ai.append(idx)
+                idx_Aj.append(idx)
+                a_ij.append(1)
+                b[idx] = 0
+
+    A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(n_pixels, n_pixels))
 
     # Solve equation
     x = spsolve(A, b)
-    u_ext = np.reshape(x, image.shape)
+    u_ext = np.reshape(x, (image.shape[0]+2, image.shape[1]+2))[1:-1, 1:-1]
     return u_ext
-
-def inpaint_image(image, mask):
-
-    x_0 = image.mean(axis = -1)
-    gradient = get_gradient(image, mask)
-
-    ###### GRADIENT DESCENT WITH GRADIENT X ####
-    max_iter = 10
-    alpha = 0.01
-    conv = 0.01
-    for _ in range(max_iter): # TODO: Actual convergence setup
-
-        x_0 = x_0 - alpha * gradient
-        gradient = get_gradient(x_0, mask)
-    print('finished')
-    return x_0
-
-    
