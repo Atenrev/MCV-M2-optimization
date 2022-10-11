@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from src.model import inpaint_image
+from src.model import get_laplacian
 from src.dataset import Dataset
 
 
@@ -22,12 +22,22 @@ def __parse_args() -> argparse.Namespace:
     return args
 
 
+def provisional_laplacian(image, mask): # This should be a laplacian, it's not tho
+    im1 = np.roll(image, -1, 0)
+    im2 = np.roll(image, 1, 0)
+    im3 = np.roll(image, -1, 1)
+    im4 = np.roll(image, 1, 1)
+    dx = 4*image - (im1 + im2 + im3 + im4)
+    dx[~mask] = 0
+    return dx
+
 def main(args: argparse.Namespace) -> None:
     os.makedirs(args.output_dir, exist_ok=True)
     dataset = Dataset(args.images_dir, args.masks_dir)
 
-    max_iter = 50
-    alpha = 1e-2
+    max_iter = 200
+    alpha = 1
+    theta = 1
     conv = 0.01
 
     for n, sample in enumerate(dataset):
@@ -38,16 +48,19 @@ def main(args: argparse.Namespace) -> None:
         if len(image.shape) > 2:
             image = np.mean(image, axis=-1).squeeze()
 
-        u = np.zeros_like(image)
+        #u = np.zeros_like(image)
+        u = np.array(image)
     
         for _ in tqdm(range(max_iter)):
-            u_new = inpaint_image(u, mask)
-            lagrange = 0.001 * (u-image) - u_new
-            u = u - alpha * lagrange
-        plt.imshow(u, cmap = 'gray')
-        plt.show()
             
-        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), u)
+            laplacian = get_laplacian(u, mask)
+            lagrange_gradient = theta * (u-image) - laplacian
+            u = u - alpha * lagrange_gradient
+        
+        plt.imshow(u, cmap = 'gray')
+        plt.savefig(os.path.join(args.output_dir, f"{sample.name}.jpg"))
+        plt.clf()
+        #cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), u)
 
 
 if __name__ == "__main__":

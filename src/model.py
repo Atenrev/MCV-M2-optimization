@@ -6,7 +6,7 @@ from scipy.sparse.linalg import spsolve
 from src.utils import get_flat_index
 
 
-def inpaint_image(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """
     A=sparse(idx_Ai, idx_Aj, a_ij, ???, ???); %??? and ???? is the size of matrix A
     x=mldivide(A,b); 
@@ -123,12 +123,12 @@ def inpaint_image(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
-                b[idx] = image[i-1, j-1]
+                b[idx] = 0
             else:
                 idx_Ai.append(idx)
                 idx_Aj.append(idx)
                 a_ij.append(1)
-                b[idx] = 0
+                b[idx] = image[i-1, j-1]
 
     A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(n_pixels, n_pixels))
 
