@@ -28,40 +28,49 @@ def provisional_laplacian(image, mask): # This should be a laplacian, it's not t
     im3 = np.roll(image, -1, 1)
     im4 = np.roll(image, 1, 1)
     dx = 4*image - (im1 + im2 + im3 + im4)
-    dx[~mask] = 0
+    dx[~mask] = 1
     return dx
+
 
 def main(args: argparse.Namespace) -> None:
     os.makedirs(args.output_dir, exist_ok=True)
     dataset = Dataset(args.images_dir, args.masks_dir)
 
-    max_iter = 200
-    alpha = 1
-    theta = 1
+    max_iter = 50
+    alpha = 1.0
+    theta = 1.0
     conv = 0.01
 
-    for n, sample in enumerate(dataset):
+    for n, sample in tqdm(enumerate(dataset), total=dataset.size()):
         image = sample.image
         mask = sample.mask
 
-        # TODO: Do this for each channel
         if len(image.shape) > 2:
-            image = np.mean(image, axis=-1).squeeze()
+            image_channels = [image[:,:,0], image[:,:,1], image[:,:,2]]
+        else:
+            image_channels = image
 
-        #u = np.zeros_like(image)
-        u = np.array(image)
-        image[mask] = 0
-    
-        for _ in tqdm(range(max_iter)):
-            
-            laplacian = get_laplacian(u, mask)
-            lagrange_gradient = theta * (u-image) - laplacian
-            u = u - alpha * lagrange_gradient
+        V = np.zeros_like(image)
+
+        for c, img in enumerate(image_channels):
+            #u = np.zeros_like(image)
+            u = np.array(img)
+            img[mask] = 0
+
+            for _ in range(max_iter):
+                laplacian = get_laplacian(u, mask)
+                lagrange_gradient = theta * (u-img) - laplacian
+                u = u - alpha * lagrange_gradient
+
+            if len(image_channels) > 2:
+                V[:,:,c] = u / u.max() * 255
+            else:
+                V = u / u.max() * 255
         
-        plt.imshow(u, cmap = 'gray')
-        plt.savefig(os.path.join(args.output_dir, f"{sample.name}.jpg"))
-        plt.clf()
-        #cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), u)
+        # plt.imshow(u, cmap = 'gray')
+        # plt.savefig(os.path.join(args.output_dir, f"{sample.name}.jpg"))
+        # plt.clf()
+        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), cv2.cvtColor(V, cv2.COLOR_RGB2BGR))
 
 
 if __name__ == "__main__":

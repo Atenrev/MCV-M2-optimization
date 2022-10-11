@@ -19,8 +19,8 @@ class Sample:
 class Dataset:
     def __init__(self, path_images: str, path_masks: str, name: str = "default") -> None:
         self.name = name
-        mask_paths = sorted(glob(os.path.join(path_masks, "*.png"))) + sorted(glob(os.path.join(path_masks, "*.jpg")))
-        image_paths = sorted(glob(os.path.join(path_images, "*.png"))) + sorted(glob(os.path.join(path_images, "*.jpg")))
+        mask_paths = sorted(glob(os.path.join(path_masks, "*.png")) + glob(os.path.join(path_masks, "*.jpg")))
+        image_paths = sorted(glob(os.path.join(path_images, "*.png")) + glob(os.path.join(path_images, "*.jpg")))
 
         assert len(mask_paths) > 0, f"No masks were found on {path_masks}."
         assert len(image_paths) > 0, f"No images were found on {path_images}."

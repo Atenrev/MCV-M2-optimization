@@ -8,6 +8,8 @@ conda activate m2_inpainting
 2. Install requirements:
 ```
 pip install -r requirements.txt
+
+conda install -c haasad pypardiso
 ```
 
 ### Project structure
