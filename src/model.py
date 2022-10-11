@@ -1,7 +1,7 @@
 import numpy as np
-import cv2
 from scipy.sparse import csr_matrix
-from scipy.sparse.linalg import spsolve
+from pypardiso import spsolve
+# from scipy.sparse.linalg import spsolve
 
 from src.utils import get_flat_index
 
@@ -69,13 +69,13 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         idx = get_flat_index(i, j, nj+2)
         idx_next = get_flat_index(i+1, j, nj+2)
 
-        idx_Ai.append(idx_next)
-        idx_Aj.append(idx)
-        a_ij.append(-1)
-
         idx_Ai.append(idx)
         idx_Aj.append(idx)
         a_ij.append(1)
+
+        idx_Ai.append(idx)
+        idx_Aj.append(idx_next)
+        a_ij.append(-1)
 
         b[idx] = 0
 
@@ -84,13 +84,13 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         idx = get_flat_index(i, j, nj+2)
         idx_prev = get_flat_index(i-1, j, nj+2)
 
-        idx_Ai.append(idx_prev)
-        idx_Aj.append(idx)
-        a_ij.append(-1)
-
         idx_Ai.append(idx)
         idx_Aj.append(idx)
         a_ij.append(1)
+
+        idx_Ai.append(idx)
+        idx_Aj.append(idx_prev)
+        a_ij.append(-1)
 
         b[idx] = 0
 
@@ -114,12 +114,12 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 idx_Aj.append(col)
                 a_ij.append(-1)
 
-                col = get_flat_index(i, j-1, nj+2)
+                col = get_flat_index(i+1, j, nj+2)
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
 
-                col = get_flat_index(i, j+1, nj+2)
+                col = get_flat_index(i-1, j, nj+2)
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
@@ -128,9 +128,9 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 idx_Ai.append(idx)
                 idx_Aj.append(idx)
                 a_ij.append(1)
-                b[idx] = image[i-1, j-1]
+                b[idx] = image_ext[i, j]
 
-    A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(n_pixels, n_pixels))
+    A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(n_pixels, n_pixels), dtype=np.float64)
 
     # Solve equation
     x = spsolve(A, b)
