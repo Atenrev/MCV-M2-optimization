@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-from pypardiso import spsolve
-# from scipy.sparse.linalg import spsolve
+#from pypardiso import spsolve
+from scipy.sparse.linalg import spsolve
 
 from src.utils import get_flat_index
 
