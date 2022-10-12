@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-#from pypardiso import spsolve
-from scipy.sparse.linalg import spsolve
+from pypardiso import spsolve
+# from scipy.sparse.linalg import spsolve
 
 from src.utils import get_flat_index
 
@@ -50,6 +50,7 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
         b[idx] = 0
 
+    # South Side boundary conditions
     j = nj+1
     for i in range(ni+2):
         idx = get_flat_index(i, j, nj+2)
@@ -64,6 +65,7 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
         b[idx] = 0
 
+    # West Side boundary conditions
     i = 0
     for j in range(nj+2):
         idx = get_flat_index(i, j, nj+2)
@@ -79,6 +81,7 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
         b[idx] = 0
 
+    # East Side boundary conditions
     i = ni+1
     for j in range(nj+2):
         idx = get_flat_index(i, j, nj+2)
@@ -94,37 +97,40 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
         b[idx] = 0
 
+    # Image points
     for i in range(1, ni+1):
         for j in range(1, nj+1):
             idx = get_flat_index(i, j, nj+2)
             
             if mask_ext[i, j]:
-                # 4𝑉 𝑥 𝑦
+                # If the pixel falls in region B
+                # 4V(i,j)
                 idx_Ai.append(idx)
                 idx_Aj.append(idx)
                 a_ij.append(4)
-                #  − (𝑉 𝑥 − 1, 𝑦 + 𝑉 𝑥 − 1, 𝑦 + 𝑉 𝑥, 𝑦 − 1 + 𝑉 𝑥, 𝑦 + 1 )
+                # -V(i-1,j)
                 col = idx-1
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
-
+                # -V(i+1,j)
                 col = idx+1
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
-
+                # -V(i,j+1)
                 col = get_flat_index(i+1, j, nj+2)
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
-
+                # -V(i,j-1)
                 col = get_flat_index(i-1, j, nj+2)
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
                 b[idx] = 0
             else:
+                # If the pixel falls in region A
                 idx_Ai.append(idx)
                 idx_Aj.append(idx)
                 a_ij.append(1)
