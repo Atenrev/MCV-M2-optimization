@@ -36,7 +36,7 @@ def main(args: argparse.Namespace) -> None:
     os.makedirs(args.output_dir, exist_ok=True)
     dataset = Dataset(args.images_dir, args.masks_dir)
 
-    max_iter = 5
+    max_iter = 1
     alpha = 1.0
     theta = 1.0
     conv = 0.01
@@ -56,24 +56,18 @@ def main(args: argparse.Namespace) -> None:
         V = np.zeros_like(image)
 
         for c, img in enumerate(image_channels):
-            #u = np.zeros_like(image)
             u = np.array(img)
             img[mask] = 0
 
-            for _ in range(max_iter):
-                laplacian = get_laplacian(u, mask)
-                lagrange_gradient = theta * (u-img) - laplacian
-                u = u - alpha * lagrange_gradient
+            laplacian = get_laplacian(u, mask)
+            u = laplacian
 
             if len(image_channels) > 2:
-                V[:,:,c] = u / np.max(u) * 255
+                V[:,:,c] = u * 255
             else:
-                V = u / np.max(u) * 255
+                V = u * 255
         
-        # plt.imshow(u, cmap = 'gray')
-        # plt.savefig(os.path.join(args.output_dir, f"{sample.name}.jpg"))
-        # plt.clf()
-        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), cv2.cvtColor(V.astype(np.uint8), cv2.COLOR_RGB2BGR))
+        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), V.astype(np.uint8))
 
 
 if __name__ == "__main__":
