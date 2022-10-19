@@ -6,21 +6,16 @@ from pypardiso import spsolve
 from src.utils import get_flat_index
 
 
-def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+def solve_equation(image: np.ndarray, mask: np.ndarray, gradient_img_ext: np.ndarray = None) -> np.ndarray:
     """
-    A=sparse(idx_Ai, idx_Aj, a_ij, ???, ???); %??? and ???? is the size of matrix A
-    x=mldivide(A,b); 
-    u_ext=reshape(x, ni+2, nj+2);
+    Solves the equation of the given image.
 
-    %Inner points
-    for j=2:nj+1
-        for i=2:ni+1
-            %from image matrix (i,j) coordinates to vectorial (p) coordinate
-            p = (j-1)*(ni+2)+i;
+    Args:
+        image: The image to inpaint
+        mask: The mask with the region to inpaint
 
-            if (dom2Inp_ext(i,j)==1) %If we have to inpaint this pixel
-                %Fill Idx_Ai, idx_Aj and a_ij with the corresponding values and vector b
-                %TO COMPLETE 
+    Returns:
+        The inpainted image.
     """
     ni, nj = image.shape[:2]
     mask_ext = np.zeros((mask.shape[0]+2, mask.shape[1]+2))
@@ -101,7 +96,7 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     for i in range(1, ni+1):
         for j in range(1, nj+1):
             idx = get_flat_index(i, j, nj+2)
-            
+
             if mask_ext[i, j]:
                 # If the pixel falls in region B
                 # 4V(i,j)
@@ -128,7 +123,11 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 idx_Ai.append(idx)
                 idx_Aj.append(col)
                 a_ij.append(-1)
-                b[idx] = 0
+
+                if gradient_img_ext is None:
+                    b[idx] = 0
+                else:
+                    b[idx] = gradient_img_ext
             else:
                 # If the pixel falls in region A
                 idx_Ai.append(idx)
@@ -136,7 +135,8 @@ def get_laplacian(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
                 a_ij.append(1)
                 b[idx] = image_ext[i, j]
 
-    A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(n_pixels, n_pixels), dtype=np.float64)
+    A = csr_matrix((a_ij, (idx_Ai, idx_Aj)), shape=(
+        n_pixels, n_pixels), dtype=np.float64)
 
     # Solve equation
     x = spsolve(A, b)
