@@ -93,6 +93,51 @@ def do_poisson_edit(args: argparse.Namespace):
         gradient_src[dst_mask == 1] = gradient_src[src_mask == 1]
 
         # Mixing gradient, move to function
+        gradient = gradient_src
+        if len(dst_image.shape) > 2:
+            image_channels = [dst_image[:,:,0], dst_image[:,:,1], dst_image[:,:,2]]
+            gradient_channels = [gradient[:,:,0], gradient[:,:,1], gradient[:,:,2]]
+        else:
+            image_channels = [dst_image]
+            gradient_channels = [gradient]
+
+        V = np.zeros_like(dst_image)
+
+        for c, (img, grad) in enumerate(zip(image_channels, gradient_channels)):
+            u = np.array(img)
+            img[dst_mask] = 0
+
+            u = poisson_edit(u, dst_mask, grad)
+
+            if len(image_channels) > 2:
+                V[:,:,c] = u * 255
+            else:
+                V = u * 255
+        
+        V -= np.min(V)
+        V = V / np.max(V) * 255
+        cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), V.astype(np.uint8))
+
+def do_mixed_gradients(args: argparse.Namespace):
+    dataset = DatasetPoissonEdit(args.images_dir, args.masks_dir)
+
+    for n, sample in tqdm(enumerate(dataset)):
+        dst_image = sample.dst_image
+        dst_mask = sample.dst_mask
+
+        dst_image -= np.min(dst_image)
+        dst_image = dst_image / np.max(dst_image)
+        gradient_dst = fast_laplacian(dst_image)
+
+        src_image = sample.src_image
+        src_image -= np.min(src_image)
+        src_image = src_image / np.max(src_image)
+        src_mask = sample.src_mask
+
+        gradient_src = fast_laplacian(src_image)
+        gradient_src[dst_mask == 1] = gradient_src[src_mask == 1]
+
+        # Mixing gradient, move to function
         p = 0.5
         gradient = p * gradient_src + (1-p) * gradient_dst
 
