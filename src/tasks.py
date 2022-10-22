@@ -69,8 +69,10 @@ def get_mixed_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     gradient_src = fast_laplacian(src_image)
     gradient_src[dst_mask == 1] = gradient_src[src_mask == 1]
 
-    gradient = np.maximum(gradient_src, gradient_dst)
-    return gradient
+    mask = (gradient_src ** 2 - gradient_dst ** 2) < 0
+    gradient = gradient_src
+    gradient[mask] = gradient_dst[mask]
+    return gradient 
 
 
 def get_weighted_gradients(sample: SamplePoissonEdit, a: float = 0.5) -> np.ndarray:
