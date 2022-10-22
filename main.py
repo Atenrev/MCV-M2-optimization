@@ -13,7 +13,7 @@ def __parse_args() -> argparse.Namespace:
                         help='location of the dataset')
     parser.add_argument('--output_dir', type=str, default='./output',
                         help='location of the dataset')
-    parser.add_argument('--task', type=str, default='mixed_gradients',
+    parser.add_argument('--task', type=str, default='importing_gradients',
                         help='task')
     parser.add_argument('--mg_apha', type=float, default=0.5,
                         help='alfa value used in weighted_gradients')

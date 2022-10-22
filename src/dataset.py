@@ -73,10 +73,14 @@ class DatasetPoissonEdit:
         self.samples: List[SamplePoissonEdit] = []
 
         for i, (mask_path, image_path) in enumerate(zip(mask_paths, image_paths)):
-            src_image = cv2.imread(os.path.join(image_path, "src.png"), cv2.IMREAD_COLOR)
+            src_image = cv2.imread(os.path.join(image_path, "src.png"), cv2.IMREAD_COLOR).astype(np.float64)
+            # src_image = src_image / 255
             src_mask = cv2.imread(os.path.join(mask_path, "src.png"), cv2.IMREAD_GRAYSCALE) != 0
-            dst_image = cv2.imread(os.path.join(image_path, "dst.png"), cv2.IMREAD_COLOR)
+
+            dst_image = cv2.imread(os.path.join(image_path, "dst.png"), cv2.IMREAD_COLOR).astype(np.float64)
+            # dst_image = dst_image / 255
             dst_mask = cv2.imread(os.path.join(mask_path, "dst.png"), cv2.IMREAD_GRAYSCALE) != 0
+
             self.samples.append(SamplePoissonEdit(
                 id=i,
                 name=str(i),

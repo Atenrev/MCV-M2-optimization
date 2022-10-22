@@ -42,56 +42,46 @@ def do_inpainting(args: argparse.Namespace):
 
 
 def get_importing_gradients(sample: SamplePoissonEdit) -> np.ndarray:
+    dst_image = sample.dst_image
     dst_mask = sample.dst_mask
     src_image = sample.src_image
-    src_image -= np.min(src_image)
-    src_image = src_image / np.max(src_image)
     src_mask = sample.src_mask
 
-    gradient = fast_laplacian(src_image)
-    gradient[dst_mask == 1] = gradient[src_mask == 1]
+    src_gradient = fast_laplacian(src_image)
+    gradient = np.zeros_like(dst_image)
+    gradient[dst_mask] = src_gradient[src_mask]
     return gradient
 
 
 def get_mixed_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     dst_image = sample.dst_image
     dst_mask = sample.dst_mask
-
-    dst_image -= np.min(dst_image)
-    dst_image = dst_image / np.max(dst_image)
-    gradient_dst = fast_laplacian(dst_image)
+    dst_gradient = fast_laplacian(dst_image)
 
     src_image = sample.src_image
     src_mask = sample.src_mask
-    
-    src_image -= np.min(src_image)
-    src_image = src_image / np.max(src_image)
-    gradient_src = fast_laplacian(src_image)
-    gradient_src[dst_mask == 1] = gradient_src[src_mask == 1]
+    src_gradient_in_src = fast_laplacian(src_image)
+    src_gradient = np.zeros_like(dst_image)
+    src_gradient[dst_mask] = src_gradient_in_src[src_mask]
 
-    mask = (gradient_src ** 2 - gradient_dst ** 2) < 0
-    gradient = gradient_src
-    gradient[mask] = gradient_dst[mask]
+    mask = (src_gradient ** 2 - dst_gradient ** 2) < 0
+    gradient = src_gradient
+    gradient[mask] = dst_gradient[mask]
     return gradient 
 
 
 def get_weighted_gradients(sample: SamplePoissonEdit, a: float = 0.5) -> np.ndarray:
     dst_image = sample.dst_image
     dst_mask = sample.dst_mask
-
-    dst_image -= np.min(dst_image)
-    dst_image = dst_image / np.max(dst_image)
-    gradient_dst = fast_laplacian(dst_image)
+    dst_gradient = fast_laplacian(dst_image)
 
     src_image = sample.src_image
-    src_image -= np.min(src_image)
-    src_image = src_image / np.max(src_image)
     src_mask = sample.src_mask
+    src_gradient_in_src = fast_laplacian(src_image)
+    src_gradient = np.zeros_like(dst_image)
+    src_gradient[dst_mask] = src_gradient_in_src[src_mask]
 
-    gradient_src = fast_laplacian(src_image)
-    gradient_src[dst_mask == 1] = gradient_src[src_mask == 1]
-
-    gradient = a * gradient_src + (1-a) * gradient_dst
+    gradient = a * src_gradient + (1-a) * dst_gradient
     return gradient
 
 
@@ -102,10 +92,11 @@ def do_poisson_edit(args: argparse.Namespace, get_gradient: Callable, **kwargs):
         dst_image = sample.dst_image
         dst_mask = sample.dst_mask
 
-        dst_image -= np.min(dst_image)
-        dst_image = dst_image / np.max(dst_image)
-
         gradient = get_gradient(sample, **kwargs)
+
+        # gradient = gradient[1:-1, 1:-1]
+        # dst_image = dst_image[1:-1, 1:-1]
+        # dst_mask = dst_mask[1:-1, 1:-1]
 
         if len(dst_image.shape) > 2:
             image_channels = [dst_image[:,:,0], dst_image[:,:,1], dst_image[:,:,2]]
@@ -123,10 +114,11 @@ def do_poisson_edit(args: argparse.Namespace, get_gradient: Callable, **kwargs):
             u = solve_equation(u, dst_mask, grad)
 
             if len(image_channels) > 2:
-                V[:,:,c] = u * 255
+                V[:,:,c] = u # * 255
             else:
-                V = u * 255
-        
-        V -= np.min(V)
-        V = V / np.max(V) * 255
+                V = u # * 255
+                
+        # V -= np.min(V)
+        # V = V / np.max(V) * 255
+        V = np.clip(V, 0, 255)
         cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), V.astype(np.uint8))
