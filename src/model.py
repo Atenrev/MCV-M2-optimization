@@ -6,7 +6,7 @@ from pypardiso import spsolve
 from src.utils import get_flat_index
 
 
-def solve_equation(image: np.ndarray, mask: np.ndarray, gradient_img_ext: np.ndarray = None) -> np.ndarray:
+def solve_equation(image: np.ndarray, mask: np.ndarray, gradient_img: np.ndarray = None) -> np.ndarray:
     """
     Solves the equation of the given image.
 
@@ -22,6 +22,12 @@ def solve_equation(image: np.ndarray, mask: np.ndarray, gradient_img_ext: np.nda
     mask_ext[1:-1, 1:-1] = mask
     image_ext = np.zeros((image.shape[0]+2, image.shape[1]+2))
     image_ext[1:-1, 1:-1] = image
+
+    if gradient_img is not None:
+        gradient_img_ext = np.zeros((gradient_img.shape[0]+2, gradient_img.shape[1]+2))
+        gradient_img_ext[1:-1, 1:-1] = gradient_img
+    else:
+        gradient_img_ext = None
 
     n_pixels = (ni+2) * (nj+2)
     b = np.zeros((n_pixels, ), dtype=np.float64)
@@ -127,7 +133,7 @@ def solve_equation(image: np.ndarray, mask: np.ndarray, gradient_img_ext: np.nda
                 if gradient_img_ext is None:
                     b[idx] = 0
                 else:
-                    b[idx] = gradient_img_ext
+                    b[idx] = gradient_img_ext[i, j]
             else:
                 # If the pixel falls in region A
                 idx_Ai.append(idx)
