@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from src.model import solve_equation
 from src.dataset import DatasetInpainting, DatasetPoissonEdit, SamplePoissonEdit
-from src.utils import fast_laplacian
+from src.utils import derivative, fast_laplacian
 
 
 def do_inpainting(args: argparse.Namespace):
@@ -47,7 +47,7 @@ def get_importing_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     src_image = sample.src_image
     src_mask = sample.src_mask
 
-    src_gradient = fast_laplacian(src_image)
+    src_gradient = derivative(src_image)
     gradient = np.zeros_like(dst_image)
     gradient[dst_mask] = src_gradient[src_mask]
     return gradient
@@ -56,11 +56,11 @@ def get_importing_gradients(sample: SamplePoissonEdit) -> np.ndarray:
 def get_mixed_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     dst_image = sample.dst_image
     dst_mask = sample.dst_mask
-    dst_gradient = fast_laplacian(dst_image)
+    dst_gradient = derivative(dst_image)
 
     src_image = sample.src_image
     src_mask = sample.src_mask
-    src_gradient_in_src = fast_laplacian(src_image)
+    src_gradient_in_src = derivative(src_image)
     src_gradient = np.zeros_like(dst_image)
     src_gradient[dst_mask] = src_gradient_in_src[src_mask]
 
@@ -73,11 +73,11 @@ def get_mixed_gradients(sample: SamplePoissonEdit) -> np.ndarray:
 def get_weighted_gradients(sample: SamplePoissonEdit, a: float = 0.5) -> np.ndarray:
     dst_image = sample.dst_image
     dst_mask = sample.dst_mask
-    dst_gradient = fast_laplacian(dst_image)
+    dst_gradient = derivative(dst_image)
 
     src_image = sample.src_image
     src_mask = sample.src_mask
-    src_gradient_in_src = fast_laplacian(src_image)
+    src_gradient_in_src = derivative(src_image)
     src_gradient = np.zeros_like(dst_image)
     src_gradient[dst_mask] = src_gradient_in_src[src_mask]
 
