@@ -47,7 +47,7 @@ def get_importing_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     src_image = sample.src_image
     src_mask = sample.src_mask
 
-    src_gradient = derivative(src_image)
+    src_gradient = fast_laplacian(src_image)
     gradient = np.zeros_like(dst_image)
     gradient[dst_mask] = src_gradient[src_mask]
     return gradient
@@ -56,66 +56,50 @@ def get_importing_gradients(sample: SamplePoissonEdit) -> np.ndarray:
 def get_mixed_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     dst_image = sample.dst_image
     dst_mask = sample.dst_mask
-    # dst_gradient = derivative(dst_image)
-
     src_image = sample.src_image
     src_mask = sample.src_mask
-    # src_gradient_in_src = derivative(src_image)
-    # src_gradient = np.zeros_like(dst_image)
-    # src_gradient[dst_mask] = src_gradient_in_src[src_mask]
 
-    # mask = (np.abs(src_gradient) - np.abs(dst_gradient)) < 0
-    # gradient = src_gradient
-    # gradient[mask] = dst_gradient[mask]
-    # return gradient 
-
-    ## gradient for source image
-    G1_DiBwd_src = np.array(src_image)
+    # gradient for source image
+    G1_DiBwd_src = np.zeros_like(src_image)
     G1_DiBwd_src[1:-1, :] = src_image[1:-1, :] - src_image[:-2, :] 
     aux = np.zeros_like(dst_image)
     aux[dst_mask] = G1_DiBwd_src[src_mask]
     G1_DiBwd_src = aux
 
-    G1_DiFwd_src = np.array(src_image)
+    G1_DiFwd_src = np.zeros_like(src_image)
     G1_DiFwd_src[1:-1, :] = src_image[1:-1, :] - src_image[2:, :] 
     aux = np.zeros_like(dst_image)
     aux[dst_mask] = G1_DiFwd_src[src_mask]
     G1_DiFwd_src = aux
 
-    G1_DjBwd_src = np.array(src_image)
+    G1_DjBwd_src = np.zeros_like(src_image)
     G1_DjBwd_src[:, 1:-1] = src_image[:, 1:-1] - src_image[:, :-2]
     aux = np.zeros_like(dst_image)
     aux[dst_mask] = G1_DjBwd_src[src_mask]
     G1_DjBwd_src = aux
 
-    G1_DjFwd_src = np.array(src_image)
+    G1_DjFwd_src = np.zeros_like(src_image)
     G1_DjFwd_src[:, 1:-1] = src_image[:, 1:-1] - src_image[:, 2:]
     aux = np.zeros_like(dst_image)
     aux[dst_mask] = G1_DjFwd_src[src_mask]
     G1_DjFwd_src = aux
 
-    ## gradient for target image
-    G1_DiBwd_dst = np.array(dst_image)
+    # gradient for target image
+    G1_DiBwd_dst = np.zeros_like(dst_image)
     G1_DiBwd_dst[1:-1, :] = dst_image[1:-1, :] - dst_image[:-2, :] 
-
-    G1_DiFwd_dst = np.array(dst_image)
+    G1_DiFwd_dst = np.zeros_like(dst_image)
     G1_DiFwd_dst[1:-1, :] = dst_image[1:-1, :] - dst_image[2:, :] 
-
-    G1_DjBwd_dst = np.array(dst_image)
+    G1_DjBwd_dst = np.zeros_like(dst_image)
     G1_DjBwd_dst[:, 1:-1] = dst_image[:, 1:-1] - dst_image[:, :-2]
-
-    G1_DjFwd_dst = np.array(dst_image)
+    G1_DjFwd_dst = np.zeros_like(dst_image)
     G1_DjFwd_dst[:, 1:-1] = dst_image[:, 1:-1] - dst_image[:, 2:]
 
     mask = (np.abs(G1_DiBwd_src) - np.abs(G1_DiBwd_dst)) < 0
     G1_DiBwd_src[mask] = G1_DiBwd_dst[mask]
-
     mask = (np.abs(G1_DiFwd_src) - np.abs(G1_DiFwd_dst)) < 0
     G1_DiFwd_src[mask] = G1_DiFwd_dst[mask]
-
     mask = (np.abs(G1_DjBwd_src) - np.abs(G1_DjBwd_dst)) < 0
     G1_DjBwd_src[mask] = G1_DjBwd_dst[mask]
-
     mask = (np.abs(G1_DjFwd_src) - np.abs(G1_DjFwd_dst)) < 0
     G1_DjFwd_src[mask] = G1_DjFwd_dst[mask]
     
@@ -141,15 +125,11 @@ def get_weighted_gradients(sample: SamplePoissonEdit, a: float = 0.5) -> np.ndar
 def do_poisson_edit(args: argparse.Namespace, get_gradient: Callable, **kwargs):
     dataset = DatasetPoissonEdit(args.images_dir, args.masks_dir)
 
-    for n, sample in tqdm(enumerate(dataset)):
+    for sample in tqdm(dataset):
         dst_image = sample.dst_image
         dst_mask = sample.dst_mask
 
         gradient = get_gradient(sample, **kwargs)
-
-        # gradient = gradient[1:-1, 1:-1]
-        # dst_image = dst_image[1:-1, 1:-1]
-        # dst_mask = dst_mask[1:-1, 1:-1]
 
         if len(dst_image.shape) > 2:
             image_channels = [dst_image[:,:,0], dst_image[:,:,1], dst_image[:,:,2]]
@@ -167,11 +147,10 @@ def do_poisson_edit(args: argparse.Namespace, get_gradient: Callable, **kwargs):
             u = solve_equation(u, dst_mask, grad)
 
             if len(image_channels) > 2:
-                V[:,:,c] = u # * 255
+                V[:,:,c] = u
             else:
-                V = u # * 255
-                
-        # V -= np.min(V)
-        # V = V / np.max(V) * 255
+                V = u
+
         V = np.clip(V, 0, 255)
         cv2.imwrite(os.path.join(args.output_dir, f"{sample.name}.jpg"), V.astype(np.uint8))
+
