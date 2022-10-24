@@ -56,18 +56,71 @@ def get_importing_gradients(sample: SamplePoissonEdit) -> np.ndarray:
 def get_mixed_gradients(sample: SamplePoissonEdit) -> np.ndarray:
     dst_image = sample.dst_image
     dst_mask = sample.dst_mask
-    dst_gradient = derivative(dst_image)
+    # dst_gradient = derivative(dst_image)
 
     src_image = sample.src_image
     src_mask = sample.src_mask
-    src_gradient_in_src = derivative(src_image)
-    src_gradient = np.zeros_like(dst_image)
-    src_gradient[dst_mask] = src_gradient_in_src[src_mask]
+    # src_gradient_in_src = derivative(src_image)
+    # src_gradient = np.zeros_like(dst_image)
+    # src_gradient[dst_mask] = src_gradient_in_src[src_mask]
 
-    mask = (src_gradient ** 2 - dst_gradient ** 2) < 0
-    gradient = src_gradient
-    gradient[mask] = dst_gradient[mask]
-    return gradient 
+    # mask = (np.abs(src_gradient) - np.abs(dst_gradient)) < 0
+    # gradient = src_gradient
+    # gradient[mask] = dst_gradient[mask]
+    # return gradient 
+
+    ## gradient for source image
+    G1_DiBwd_src = np.array(src_image)
+    G1_DiBwd_src[1:-1, :] = src_image[1:-1, :] - src_image[:-2, :] 
+    aux = np.zeros_like(dst_image)
+    aux[dst_mask] = G1_DiBwd_src[src_mask]
+    G1_DiBwd_src = aux
+
+    G1_DiFwd_src = np.array(src_image)
+    G1_DiFwd_src[1:-1, :] = src_image[1:-1, :] - src_image[2:, :] 
+    aux = np.zeros_like(dst_image)
+    aux[dst_mask] = G1_DiFwd_src[src_mask]
+    G1_DiFwd_src = aux
+
+    G1_DjBwd_src = np.array(src_image)
+    G1_DjBwd_src[:, 1:-1] = src_image[:, 1:-1] - src_image[:, :-2]
+    aux = np.zeros_like(dst_image)
+    aux[dst_mask] = G1_DjBwd_src[src_mask]
+    G1_DjBwd_src = aux
+
+    G1_DjFwd_src = np.array(src_image)
+    G1_DjFwd_src[:, 1:-1] = src_image[:, 1:-1] - src_image[:, 2:]
+    aux = np.zeros_like(dst_image)
+    aux[dst_mask] = G1_DjFwd_src[src_mask]
+    G1_DjFwd_src = aux
+
+    ## gradient for target image
+    G1_DiBwd_dst = np.array(dst_image)
+    G1_DiBwd_dst[1:-1, :] = dst_image[1:-1, :] - dst_image[:-2, :] 
+
+    G1_DiFwd_dst = np.array(dst_image)
+    G1_DiFwd_dst[1:-1, :] = dst_image[1:-1, :] - dst_image[2:, :] 
+
+    G1_DjBwd_dst = np.array(dst_image)
+    G1_DjBwd_dst[:, 1:-1] = dst_image[:, 1:-1] - dst_image[:, :-2]
+
+    G1_DjFwd_dst = np.array(dst_image)
+    G1_DjFwd_dst[:, 1:-1] = dst_image[:, 1:-1] - dst_image[:, 2:]
+
+    mask = (np.abs(G1_DiBwd_src) - np.abs(G1_DiBwd_dst)) < 0
+    G1_DiBwd_src[mask] = G1_DiBwd_dst[mask]
+
+    mask = (np.abs(G1_DiFwd_src) - np.abs(G1_DiFwd_dst)) < 0
+    G1_DiFwd_src[mask] = G1_DiFwd_dst[mask]
+
+    mask = (np.abs(G1_DjBwd_src) - np.abs(G1_DjBwd_dst)) < 0
+    G1_DjBwd_src[mask] = G1_DjBwd_dst[mask]
+
+    mask = (np.abs(G1_DjFwd_src) - np.abs(G1_DjFwd_dst)) < 0
+    G1_DjFwd_src[mask] = G1_DjFwd_dst[mask]
+    
+    return (G1_DiBwd_src + G1_DiFwd_src + G1_DjBwd_src + G1_DjFwd_src)
+
 
 
 def get_weighted_gradients(sample: SamplePoissonEdit, a: float = 0.5) -> np.ndarray:
