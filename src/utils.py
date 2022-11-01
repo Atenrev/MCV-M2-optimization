@@ -34,3 +34,37 @@ def derivative(image):
     drivingGrad_i = G1_DiBwd - G1_DiFwd
     drivingGrad_j = G1_DjBwd - G1_DjFwd
     return drivingGrad_i + drivingGrad_j
+
+def init_surface_cone(img, radius = 1,) -> np.ndarray:
+
+    npixels = img.shape[0] * img.shape[1]
+    xcoords = np.arange(npixels) // img.shape[1]
+    xcoords -= max(xcoords) // 2 #center
+    ycoords = np.arange(npixels) // img.shape[0]
+    ycoords -= max(ycoords) // 2
+
+    cone = radius - (xcoords.reshape(img.shape)**2 + ycoords.reshape(img.shape).T**2)**.5
+    # Normalization
+    return 255 * (cone - cone.min()) / (cone.max() - cone.min())
+
+def init_surface_sine(img, freq = 3) -> np.ndarray:
+    npixels = img.shape[0] * img.shape[1]
+    xcoords = np.arange(npixels) // img.shape[1]
+    ycoords = np.arange(npixels) // img.shape[0]
+
+    waves = np.sin(freq * xcoords.reshape(img.shape)) + np.sin(freq * ycoords.reshape(img.shape).T)
+
+    return 255 * (waves - waves.min()) / (waves.max() - waves.min())
+
+def init_surface_xavier(img, )-> np.ndarray:
+
+    x, y = img.shape
+    scale = 1/max(1., (x+y)/2.)
+    limit = (3.0 * scale) ** .5
+    weights = np.random.uniform(-limit, limit, size=(x, y))
+    
+    return 255 * (weights - weights.min()) / (weights.max() - weights.min()) 
+
+def init_surface_random_normal(img, ) -> np.ndarray:
+    normal = np.random.normal(0, 1, size = img.shape)
+    return  255 * (normal - normal.min()) / (normal.max() - normal.min()) 
