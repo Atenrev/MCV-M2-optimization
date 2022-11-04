@@ -43,7 +43,7 @@ def init_surface_cone(img, radius = 1,) -> np.ndarray:
     ycoords = np.arange(npixels) // img.shape[0]
     ycoords -= max(ycoords) // 2
 
-    cone = radius - (xcoords.reshape(img.shape)**2 + ycoords.reshape(img.shape).T**2)**.5
+    cone = radius - (xcoords.reshape(img.shape)**2 + ycoords.reshape((img.shape[1], img.shape[0])).T**2)**.5
     # Normalization
     return 255 * (cone - cone.min()) / (cone.max() - cone.min())
 
@@ -52,7 +52,7 @@ def init_surface_sine(img, freq = 3) -> np.ndarray:
     xcoords = np.arange(npixels) // img.shape[1]
     ycoords = np.arange(npixels) // img.shape[0]
 
-    waves = np.sin(freq * xcoords.reshape(img.shape)) + np.sin(freq * ycoords.reshape(img.shape).T)
+    waves = np.sin(freq * xcoords.reshape(img.shape)) + np.sin(freq * ycoords.reshape((img.shape[1], img.shape[0])).T)
 
     return 255 * (waves - waves.min()) / (waves.max() - waves.min())
 
