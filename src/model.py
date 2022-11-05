@@ -148,3 +148,23 @@ def solve_equation(image: np.ndarray, mask: np.ndarray, gradient_img: np.ndarray
     x = spsolve(A, b)
     u_ext = np.reshape(x, (image.shape[0]+2, image.shape[1]+2))[1:-1, 1:-1]
     return u_ext
+
+
+def chan_vese_H(t, epsilon: float = 1.0):
+    atan = np.arctan(t / epsilon)
+    h = 1 + 2 / np.pi * atan
+    return h / 2
+
+
+def chan_vese_calc_color(image, phi, negate: bool = False):
+    if negate:
+        h = 1.0 - chan_vese_H(phi)
+    else:
+        h = chan_vese_H(phi)
+        
+    c = np.sum(np.multiply(image, h)) / np.sum(h)
+    return c
+
+
+def chan_vese_dirac(t, epsilon: float = 1.0):
+    return epsilon / (np.pi * (epsilon**2 + t**2))

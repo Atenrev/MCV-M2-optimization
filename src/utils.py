@@ -18,21 +18,45 @@ def fast_laplacian(image):
     return dx
 
 
-def derivative(image):
+def di_bwd(image):
     G1_DiBwd = np.zeros_like(image)
     G1_DiBwd[1:, :] = image[1:, :] - image[:-1, :]
+    return G1_DiBwd
 
+
+def di_fwd(image):
     G1_DiFwd = np.zeros_like(image)
     G1_DiFwd[:-1, :] = image[1:, :] - image[:-1, :]
+    return G1_DiFwd
 
+
+def dj_bwd(image):
     G1_DjBwd = np.zeros_like(image)
     G1_DjBwd[:, 1:] = image[:, 1:] - image[:, :-1]
+    return G1_DjBwd
 
+
+def dj_fwd(image):
     G1_DjFwd = np.zeros_like(image)
     G1_DjFwd[:, :-1] = image[:, 1:] - image[:, :-1]
+    return G1_DjFwd
 
-    drivingGrad_i = G1_DiBwd - G1_DiFwd
-    drivingGrad_j = G1_DjBwd - G1_DjFwd
+
+def di_cent(image):
+    G1_DiBwd = di_bwd(image)
+    G1_DiFwd = di_fwd(image)
+    return G1_DiBwd - G1_DiFwd
+
+
+def dj_cent(image):
+    G1_DjBwd = dj_bwd(image)
+    G1_DjFwd = dj_fwd(image)
+    return G1_DjBwd - G1_DjFwd
+
+
+def derivative(image):
+    drivingGrad_i = di_cent(image)
+    drivingGrad_j = dj_cent(image)
     return drivingGrad_i + drivingGrad_j
 
 

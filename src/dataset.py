@@ -9,6 +9,44 @@ from dataclasses import dataclass
 
 
 @dataclass
+class SampleDefault:
+    id: int
+    name: str
+    image: np.ndarray
+
+
+class DatasetDefault:
+    def __init__(self, path_images: str, name: str = "default") -> None:
+        self.name = name
+        image_paths = sorted(glob(os.path.join(path_images, "*.png")) + glob(os.path.join(path_images, "*.jpg")))
+
+        assert len(image_paths) > 0, f"No images were found on {path_images}."
+
+        self.samples: List[SampleDefault] = []
+
+        for i, image_path in enumerate(image_paths):
+            image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+            basename = os.path.basename(image_path).split('.')[0]
+            self.samples.append(SampleDefault(
+                id=i,
+                name=basename,
+                image=image
+            ))
+
+    def size(self) -> int:
+        return len(self.samples)
+
+    def get_item(self, id: int) -> SampleDefault:
+        return self.__getitem__(id)
+
+    def __iter__(self):
+        return (self.__getitem__(id) for id in range(self.size()))
+
+    def __getitem__(self, id: int) -> SampleDefault:
+        return self.samples[id]
+
+
+@dataclass
 class SampleInpainting:
     id: int
     name: str
