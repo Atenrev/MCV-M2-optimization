@@ -22,24 +22,26 @@ def __parse_args() -> argparse.Namespace:
     # Chan vese segmentation
     parser.add_argument('--phi_init', type=str, default='xavier',
                         help='phi init function')
-    parser.add_argument('--tol', type=float, default=0.1,
+    parser.add_argument('--tol', type=float, default=1,
                         help='tolerance for the stopping criterium')
-    parser.add_argument('--ep_heaviside', type=float, default=1.0,
+    parser.add_argument('--ep_heaviside', type=float, default=1,
                         help='epsilon for the regularized heaviside')
-    parser.add_argument('--mu', type=float, default=1.0,
+    parser.add_argument('--mu', type=float, default=5e-2,
                         help='mu lenght parameter (regularizer term)')
-    parser.add_argument('--nu', type=float, default=0.0,
+    parser.add_argument('--nu', type=float, default=5e-3,
                         help='nu area parameter (regularizer term)')
     parser.add_argument('--lambda1', type=float, default=1.0,
                         help='mu lenght parameter (regularizer term)')
     parser.add_argument('--lambda2', type=float, default=1.0,
                         help='nu area parameter (regularizer term)')
-    parser.add_argument('--eta', type=float, default=1.0,
+    parser.add_argument('--eta', type=float, default=1,
                         help='epsilon for the total variation regularization')
     parser.add_argument('--max_iter', type=float, default=1000,
                         help='maximum number of iterations')
     parser.add_argument('--re_init', type=float, default=100,
                         help='Iterations for reinitialization. 0 means no reinitializacion')
+    parser.add_argument('--video', type=bool, default='true')
+    parser.add_argument('-frame_freq', type=int, default=1)
     args = parser.parse_args()
     return args
 
