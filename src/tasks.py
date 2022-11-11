@@ -167,7 +167,10 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
     FPS = 60
 
     for sample in tqdm(dataset):
-        image = cv2.cvtColor(sample.image, cv2.COLOR_BGR2GRAY)
+        image = sample.image
+        image = cv2.resize(image, (256,  int(256 * image.shape[0]/image.shape[1] )))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
 
         phi_0 = PHI_INIT_FUNC[args.phi_init](image)
         c1 = 255
@@ -227,6 +230,7 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
                 nor = min(np.abs(np.min(phi)), np.max(phi))
                 phi = phi / nor;
 
+
             dif = np.mean(np.sum((phi - phi_old)**2))
             if args.video and not (it%args.frame_freq):
                 segmented = image.copy()
@@ -236,7 +240,8 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
                 vidout.write(color)
 
             it += 1
-            
+        
+        print("Sample", sample.name, "finished. Total iterations:", it)
 
         segmented = image.copy()
         segmented[phi>=0] = c1 

@@ -73,7 +73,7 @@ def init_surface_cone(img, radius=1,) -> np.ndarray:
     return 255 * (cone - cone.min()) / (cone.max() - cone.min())
 
 
-def init_surface_sine(img, freq=3) -> np.ndarray:
+def init_surface_sine(img, freq=50) -> np.ndarray:
     npixels = img.shape[0] * img.shape[1]
     xcoords = np.arange(npixels) // img.shape[1]
     ycoords = np.arange(npixels) // img.shape[0]
