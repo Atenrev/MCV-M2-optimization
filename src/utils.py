@@ -24,16 +24,16 @@ def di_bwd(image):
     return G1_DiBwd
 
 
-def di_fwd(image):
-    G1_DiFwd = np.zeros_like(image)
-    G1_DiFwd[:-1, :] = image[1:, :] - image[:-1, :]
-    return G1_DiFwd
-
-
 def dj_bwd(image):
     G1_DjBwd = np.zeros_like(image)
     G1_DjBwd[:, 1:] = image[:, 1:] - image[:, :-1]
     return G1_DjBwd
+
+
+def di_fwd(image):
+    G1_DiFwd = np.zeros_like(image)
+    G1_DiFwd[:-1, :] = image[1:, :] - image[:-1, :]
+    return G1_DiFwd
 
 
 def dj_fwd(image):
@@ -67,7 +67,8 @@ def init_surface_cone(img, radius=1,) -> np.ndarray:
     ycoords = np.arange(npixels) // img.shape[0]
     ycoords -= max(ycoords) // 2
 
-    cone = radius - (xcoords.reshape(img.shape)**2 + ycoords.reshape((img.shape[1], img.shape[0])).T**2)**.5
+    cone = radius - (xcoords.reshape(img.shape)**2 +
+                     ycoords.reshape((img.shape[1], img.shape[0])).T**2)**.5
     # Normalization
     return 255 * (cone - cone.min()) / (cone.max() - cone.min())
 
@@ -77,7 +78,8 @@ def init_surface_sine(img, freq=3) -> np.ndarray:
     xcoords = np.arange(npixels) // img.shape[1]
     ycoords = np.arange(npixels) // img.shape[0]
 
-    waves = np.sin(freq * xcoords.reshape(img.shape)) + np.sin(freq * ycoords.reshape((img.shape[1], img.shape[0])).T)
+    waves = np.sin(freq * xcoords.reshape(img.shape)) + \
+        np.sin(freq * ycoords.reshape((img.shape[1], img.shape[0])).T)
 
     return 255 * (waves - waves.min()) / (waves.max() - waves.min())
 
@@ -98,7 +100,7 @@ def init_surface_random_normal(img, ) -> np.ndarray:
 
 PHI_INIT_FUNC = {
     "cone": init_surface_cone,
-    "sine": init_surface_sine, 
+    "sine": init_surface_sine,
     "normal": init_surface_random_normal,
     "xavier": init_surface_xavier,
 }

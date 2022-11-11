@@ -182,6 +182,7 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
             fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
             vidout = cv2.VideoWriter(os.path.join(args.output_dir,
                     f"{sample.name}.avi"), fourcc, FPS, (image.shape[1], image.shape[0]))
+
         while dif > args.tol and it < args.max_iter:
             phi_old = phi.copy()
 
@@ -242,12 +243,14 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
         segmented[phi<0] = c2
         cv2.imwrite(os.path.join(args.output_dir,
                     f"{sample.name}.jpg"), segmented.astype(np.uint8))
+                    
         if args.video: 
             segmented = image.copy()
             segmented[phi>=0] = c1 
             segmented[phi<0] = c2
             color = cv2.cvtColor(segmented, cv2.COLOR_GRAY2BGR)
             final_seconds = 2
+
             for _ in range(FPS*final_seconds): vidout.write(color)
             
             vidout.release()
