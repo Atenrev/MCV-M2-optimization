@@ -168,9 +168,9 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
 
     for sample in tqdm(dataset):
         image = sample.image
-        image = cv2.resize(image, (256,  int(256 * image.shape[0]/image.shape[1] )))
+        image = cv2.resize(
+            image, (256,  int(256 * image.shape[0]/image.shape[1])))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
 
         phi_0 = PHI_INIT_FUNC[args.phi_init](image)
         c1 = 255
@@ -180,11 +180,10 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
         dif = np.inf
         it = 0
 
-        video = []
         if args.video:
-            fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
+            fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
             vidout = cv2.VideoWriter(os.path.join(args.output_dir,
-                    f"{sample.name}.avi"), fourcc, FPS, (image.shape[1], image.shape[0]))
+                                                  f"{sample.name}.avi"), fourcc, FPS, (image.shape[1], image.shape[0]))
 
         while dif > args.tol and it < args.max_iter:
             phi_old = phi.copy()
@@ -199,63 +198,66 @@ def do_chan_vese(args: argparse.Namespace, **kwargs):
 
             delta_phi = chan_vese_dirac(phi_old, args.ep_heaviside)
 
-            phi_iFwd = di_fwd(phi_old)
-            # phi_iBwd = di_bwd(phi_old)
+            phi_iFwd = di_fwd(phi_old) 
             phi_jFwd = dj_fwd(phi_old)
-            # phi_jBwd = dj_bwd(phi_old)
             phi_icent = di_cent(phi_old)
-            phi_jcent = dj_cent(phi_old)
-            # phi_icent = (phi_iFwd + phi_iBwd) / 2
-            # phi_jcent = (phi_jFwd + phi_jBwd) / 2
-
+            phi_jcent = dj_cent(phi_old) 
 
             A = args.mu / np.sqrt(args.eta**2 + phi_iFwd**2 + phi_jcent**2)
             B = args.mu / np.sqrt(args.eta**2 + phi_jFwd**2 + phi_icent**2)
 
-            phi[1:-1, 1:-1] = phi_old[1:-1, 1:-1] + dt * delta_phi[1:-1, 1:-1] \
-                * (A[1:-1, 1:-1]*phi_old[2:, 1:-1] + A[:-2, 1:-1]*phi[:-2, 1:-1]
-                   + B[1:-1, 1:-1]*phi_old[1:-1, 2:] + B[1:-1, :-2]*phi[1:-1, :-2]
-                   - args.nu - args.lambda1 * (image[1:-1, 1:-1] - c1)**2
-                   + args.lambda2 * (image[1:-1, 1:-1] - c2)**2
-                   ) / (1.0 + dt*delta_phi[1:-1, 1:-1]
-                        + A[1:-1, 1:-1] + A[:-2, 1:-1] + B[1:-1, 1:-1] + B[1:-1, :-2]
-                        )
+            phi[1:-1, 1:-1] = (phi_old[1:-1, 1:-1] + dt * delta_phi[1:-1, 1:-1]
+                               * (A[1:-1, 1:-1]*phi_old[2:, 1:-1]
+                                  + A[:-2, 1:-1]*phi[:-2, 1:-1]
+                                  + B[1:-1, 1:-1]*phi_old[1:-1, 2:]
+                                  + B[1:-1, :-2]*phi[1:-1, :-2]
+                                  - args.nu
+                                  - args.lambda1 * (image[1:-1, 1:-1] - c1)**2
+                                  + args.lambda2 * (image[1:-1, 1:-1] - c2)**2
+                                  )) / (1.0 + dt*delta_phi[1:-1, 1:-1]
+                                        + A[1:-1, 1:-1]
+                                        + A[:-2, 1:-1]
+                                        + B[1:-1, 1:-1]
+                                        + B[1:-1, :-2]
+                                        )
 
             if args.re_init > 0 and it > 0 and it % args.re_init == 0:
-                indGT = phi >= 0;
-                indLT = phi < 0;
-                
-                phi = distance_transform_edt(1-indLT) - distance_transform_edt(1-indGT);
-                
+                indGT = phi >= 0
+                indLT = phi < 0
+
+                phi = distance_transform_edt(
+                    1-indLT) - distance_transform_edt(1-indGT)
+
                 nor = min(np.abs(np.min(phi)), np.max(phi))
-                phi = phi / nor;
+                phi = phi / nor
 
+            dif = np.sqrt(np.sum((phi - phi_old)**2) /
+                          (image.shape[0] * image.shape[1]))
 
-            dif = np.mean(np.sum((phi - phi_old)**2))
-            if args.video and not (it%args.frame_freq):
+            it += 1
+
+            if args.video and not (it % args.frame_freq):
                 segmented = image.copy()
-                segmented[phi>=0] = c1 
-                segmented[phi<0] = c2
+                segmented[phi >= 0] = c1
+                segmented[phi < 0] = c2
+                segmented = segmented.astype(np.uint8)
                 color = cv2.cvtColor(segmented, cv2.COLOR_GRAY2BGR)
                 vidout.write(color)
 
-            it += 1
-        
         print("Sample", sample.name, "finished. Total iterations:", it)
 
         segmented = image.copy()
-        segmented[phi>=0] = c1 
-        segmented[phi<0] = c2
+        segmented[phi >= 0] = c1
+        segmented[phi < 0] = c2
+        segmented = segmented.astype(np.uint8)
         cv2.imwrite(os.path.join(args.output_dir,
-                    f"{sample.name}.jpg"), segmented.astype(np.uint8))
-                    
-        if args.video: 
-            segmented = image.copy()
-            segmented[phi>=0] = c1 
-            segmented[phi<0] = c2
+                    f"{sample.name}.jpg"), segmented)
+
+        if args.video:
             color = cv2.cvtColor(segmented, cv2.COLOR_GRAY2BGR)
             final_seconds = 2
 
-            for _ in range(FPS*final_seconds): vidout.write(color)
-            
+            for _ in range(FPS*final_seconds):
+                vidout.write(color)
+
             vidout.release()
